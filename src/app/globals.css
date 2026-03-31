@@ -1,0 +1,143 @@
+@import "tailwindcss";
+@source "../../src";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+    "Segoe UI", Roboto, sans-serif;
+}
+
+/* ─── Light mode ─────────────────────────────── */
+:root {
+  color-scheme: light;
+  --color-bg-primary: #fafafa;
+  --color-bg-secondary: #f0f0f0;
+  --color-bg-card: #ffffff;
+  --color-bg-elevated: #ffffff;
+  --color-text-primary: #111111;
+  --color-text-secondary: #777777;
+  --color-text-tertiary: #bbbbbb;
+  --color-border: #e8e8e8;
+  --color-accent: #e85d5d;
+  --color-accent-hover: #d04e4e;
+  --color-income: #34c759;
+  --color-income-bg: rgba(52, 199, 89, 0.06);
+  --color-expense: #e85d5d;
+  --color-expense-bg: rgba(232, 93, 93, 0.06);
+}
+
+/* ─── Dark mode ──────────────────────────────── */
+.dark {
+  color-scheme: dark;
+  --color-bg-primary: #000000;
+  --color-bg-secondary: #141414;
+  --color-bg-card: #1a1a1a;
+  --color-bg-elevated: #222222;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #888888;
+  --color-text-tertiary: #444444;
+  --color-border: #262626;
+  --color-accent: #e85d5d;
+  --color-accent-hover: #d04e4e;
+  --color-income: #4cd964;
+  --color-income-bg: rgba(76, 217, 100, 0.08);
+  --color-expense: #e85d5d;
+  --color-expense-bg: rgba(232, 93, 93, 0.08);
+}
+
+/* ─── Reset (MUST be in @layer base so Tailwind utilities can override) ─── */
+@layer base {
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  input, select, textarea, button {
+    font-family: inherit;
+    color: inherit;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] { -moz-appearance: textfield; }
+}
+
+/* ─── Layout primitives ──────────────────────── */
+.app-container {
+  max-width: 430px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  padding: 0 20px;
+  padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* When dashboard is active, lock ALL scroll containers */
+html:has(.dashboard-root),
+html:has(.dashboard-root) body,
+.app-container:has(.dashboard-root) {
+  height: 100dvh;
+  min-height: unset;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.bottom-safe {
+  bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Disable scroll on body when dashboard handles its own */
+.no-body-scroll {
+  overflow: hidden;
+  height: 100dvh;
+}
+
+/* ─── Utilities ──────────────────────────────── */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ─── Animations ─────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fadeIn 0.3s ease-out; }
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes slideDown {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+.animate-slide-up { animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+.animate-slide-down { animation: slideDown 0.2s ease-in forwards; }
+
+@keyframes fadeOverlay {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-overlay { animation: fadeOverlay 0.2s ease-out; }
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(-12px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-toast { animation: toastIn 0.3s ease-out; }
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-scale-in { animation: scaleIn 0.25s ease-out; }
