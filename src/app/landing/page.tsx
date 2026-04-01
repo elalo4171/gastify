@@ -290,7 +290,7 @@ type Lang = keyof typeof t;
 /* ═══════════════════════════════════════════════════
    Icons (inline SVG to avoid dependencies)
    ═══════════════════════════════════════════════════ */
-const icons: Record<string, JSX.Element> = {
+const icons: Record<string, React.ReactNode> = {
   chart: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
       <path d="M3 3v18h18" /><path d="M7 16l4-8 4 4 5-9" />
