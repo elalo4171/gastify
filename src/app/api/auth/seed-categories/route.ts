@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/supabase/user";
-import { apiHandler } from "@/lib/api";
+import { getUser } from "@/lib/supabase/user";
 
 const DEFAULT_CATEGORIES = [
   { nombre: "Comida", emoji: "🍔" },
@@ -20,8 +19,12 @@ const DEFAULT_CATEGORIES = [
 ];
 
 // POST /api/auth/seed-categories
-export const POST = apiHandler(async (req: NextRequest) => {
-  const user = await requireUser();
+export async function POST(req: NextRequest) {
+  const user = await getUser();
+  if (!user) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
   const body = await req.json().catch(() => null);
 
   // Only seed if user has no categories yet
@@ -45,4 +48,4 @@ export const POST = apiHandler(async (req: NextRequest) => {
   });
 
   return NextResponse.json({ seeded: true, count: categories.length });
-});
+}

@@ -58,6 +58,14 @@ export const POST = apiHandler(async (req: NextRequest) => {
   if (typeof monto !== "number" || monto <= 0) {
     return NextResponse.json({ error: "monto inválido" }, { status: 400 });
   }
+  if (monto > 999999999.99) {
+    return NextResponse.json({ error: "monto excede el máximo permitido (999,999,999.99)" }, { status: 400 });
+  }
+
+  const fechaDate = new Date(fecha);
+  if (isNaN(fechaDate.getTime())) {
+    return NextResponse.json({ error: "fecha inválida" }, { status: 400 });
+  }
 
   const registro = await prisma.registro.create({
     data: {
@@ -65,7 +73,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
       monto,
       descripcion: descripcion.trim(),
       categoria_id: categoria_id || null,
-      fecha: new Date(fecha),
+      fecha: fechaDate,
       user_id: user.id,
     },
     include: { categoria: true },
@@ -94,11 +102,30 @@ export const PUT = apiHandler(async (req: NextRequest) => {
   }
 
   const data: Record<string, unknown> = {};
-  if (tipo !== undefined) data.tipo = tipo;
-  if (monto !== undefined) data.monto = monto;
+  if (tipo !== undefined) {
+    if (!["entrada", "salida"].includes(tipo)) {
+      return NextResponse.json({ error: "tipo debe ser 'entrada' o 'salida'" }, { status: 400 });
+    }
+    data.tipo = tipo;
+  }
+  if (monto !== undefined) {
+    if (typeof monto !== "number" || monto <= 0) {
+      return NextResponse.json({ error: "monto inválido" }, { status: 400 });
+    }
+    if (monto > 999999999.99) {
+      return NextResponse.json({ error: "monto excede el máximo permitido (999,999,999.99)" }, { status: 400 });
+    }
+    data.monto = monto;
+  }
   if (descripcion !== undefined) data.descripcion = descripcion;
   if (categoria_id !== undefined) data.categoria_id = categoria_id || null;
-  if (fecha !== undefined) data.fecha = new Date(fecha);
+  if (fecha !== undefined) {
+    const fechaDate = new Date(fecha);
+    if (isNaN(fechaDate.getTime())) {
+      return NextResponse.json({ error: "fecha inválida" }, { status: 400 });
+    }
+    data.fecha = fechaDate;
+  }
 
   const registro = await prisma.registro.update({
     where: { id, user_id: user.id },

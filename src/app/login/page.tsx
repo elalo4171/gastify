@@ -45,8 +45,6 @@ export default function LoginPage() {
       if (signUpData.user) {
         await fetch("/api/auth/seed-categories", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: signUpData.user.id }),
         });
       }
     } else {

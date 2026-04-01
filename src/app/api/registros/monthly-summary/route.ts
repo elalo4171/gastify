@@ -8,6 +8,10 @@ export async function GET(request: NextRequest) {
   const yearParam = request.nextUrl.searchParams.get("year");
   const year = yearParam ? parseInt(yearParam) : new Date().getFullYear();
 
+  if (isNaN(year) || year < 1900 || year > 2100) {
+    return NextResponse.json({ error: "year debe ser entre 1900 y 2100" }, { status: 400 });
+  }
+
   const inicio = new Date(year, 0, 1);
   const fin = new Date(year, 11, 31);
 

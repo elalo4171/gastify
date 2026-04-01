@@ -14,6 +14,13 @@ export const GET = apiHandler(async (request: NextRequest) => {
   const year = yearParam ? parseInt(yearParam) : now.getFullYear();
   const month = monthParam ? parseInt(monthParam) : now.getMonth();
 
+  if (isNaN(month) || month < 0 || month > 11) {
+    return NextResponse.json({ error: "month debe ser entre 0 y 11" }, { status: 400 });
+  }
+  if (isNaN(year) || year < 1900 || year > 2100) {
+    return NextResponse.json({ error: "year debe ser entre 1900 y 2100" }, { status: 400 });
+  }
+
   const inicioMes = new Date(year, month, 1);
   const finMes = new Date(year, month + 1, 0);
 

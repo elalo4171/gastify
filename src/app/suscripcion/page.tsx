@@ -11,8 +11,11 @@ export default function SuscripcionPage() {
     setLoading(true);
     const res = await fetch("/api/stripe/checkout", { method: "POST" });
     const { url } = await res.json();
-    if (url) window.location.href = url;
-    else setLoading(false);
+    if (url && typeof url === "string" && url.startsWith("https://checkout.stripe.com")) {
+      window.location.href = url;
+    } else {
+      setLoading(false);
+    }
   };
 
   return (

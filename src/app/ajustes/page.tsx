@@ -162,7 +162,9 @@ export default function AjustesPage() {
             const res = await fetch("/api/stripe/portal", { method: "POST" });
             if (res.ok) {
               const { url } = await res.json();
-              if (url) window.location.href = url;
+              if (url && typeof url === "string" && url.startsWith("https://billing.stripe.com")) {
+                window.location.href = url;
+              }
             } else {
               router.push("/suscripcion");
             }

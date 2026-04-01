@@ -14,12 +14,18 @@ export const GET = apiHandler(async (req: NextRequest) => {
     return NextResponse.json({ error: "fechas requeridas" }, { status: 400 });
   }
 
+  const fechaInicioDate = new Date(fechaInicio);
+  const fechaFinDate = new Date(fechaFin);
+  if (isNaN(fechaInicioDate.getTime()) || isNaN(fechaFinDate.getTime())) {
+    return NextResponse.json({ error: "formato de fecha inválido" }, { status: 400 });
+  }
+
   const registros = await prisma.registro.findMany({
     where: {
       user_id: user.id,
       fecha: {
-        gte: new Date(fechaInicio),
-        lte: new Date(fechaFin),
+        gte: fechaInicioDate,
+        lte: fechaFinDate,
       },
     },
     include: { categoria: true },

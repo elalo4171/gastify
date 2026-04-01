@@ -29,6 +29,12 @@ export const POST = apiHandler(async (req: NextRequest) => {
   if (!nombre?.trim() || !emoji?.trim()) {
     return NextResponse.json({ error: "nombre y emoji requeridos" }, { status: 400 });
   }
+  if (nombre.trim().length > 100) {
+    return NextResponse.json({ error: "nombre no puede exceder 100 caracteres" }, { status: 400 });
+  }
+  if (emoji.trim().length > 10) {
+    return NextResponse.json({ error: "emoji no puede exceder 10 caracteres" }, { status: 400 });
+  }
 
   const categoria = await prisma.categoria.create({
     data: {
@@ -55,8 +61,24 @@ export const PUT = apiHandler(async (req: NextRequest) => {
   }
 
   const data: Record<string, unknown> = {};
-  if (nombre !== undefined) data.nombre = nombre;
-  if (emoji !== undefined) data.emoji = emoji;
+  if (nombre !== undefined) {
+    if (typeof nombre !== "string" || nombre.trim().length === 0) {
+      return NextResponse.json({ error: "nombre no puede estar vacío" }, { status: 400 });
+    }
+    if (nombre.trim().length > 100) {
+      return NextResponse.json({ error: "nombre no puede exceder 100 caracteres" }, { status: 400 });
+    }
+    data.nombre = nombre;
+  }
+  if (emoji !== undefined) {
+    if (typeof emoji !== "string" || emoji.trim().length === 0) {
+      return NextResponse.json({ error: "emoji no puede estar vacío" }, { status: 400 });
+    }
+    if (emoji.trim().length > 10) {
+      return NextResponse.json({ error: "emoji no puede exceder 10 caracteres" }, { status: 400 });
+    }
+    data.emoji = emoji;
+  }
   if (visible !== undefined) data.visible = visible;
 
   const categoria = await prisma.categoria.update({
