@@ -168,6 +168,7 @@ export default function VoiceModal({ open, onClose, onSaved }: VoiceModalProps) 
   const [saving, setSaving] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const lastInterimRef = useRef("");
+  const processedRef = useRef(false);
 
   const parseVoice = useCallback((text: string) => {
     const lower = text.toLowerCase().trim();
@@ -238,6 +239,7 @@ export default function VoiceModal({ open, onClose, onSaved }: VoiceModalProps) 
     recognition.onstart = () => {
       setListening(true);
       lastInterimRef.current = "";
+      processedRef.current = false;
     };
     recognition.onerror = () => setListening(false);
 
@@ -245,11 +247,12 @@ export default function VoiceModal({ open, onClose, onSaved }: VoiceModalProps) 
     // use the last interim transcript as the result
     recognition.onend = () => {
       setListening(false);
-      if (lastInterimRef.current && !transcript) {
+      if (lastInterimRef.current && !processedRef.current) {
+        processedRef.current = true;
         const text = lastInterimRef.current;
+        lastInterimRef.current = "";
         setTranscript(text);
         setParsed(parseVoice(text));
-        lastInterimRef.current = "";
       }
     };
 
@@ -263,6 +266,7 @@ export default function VoiceModal({ open, onClose, onSaved }: VoiceModalProps) 
       setInterimText(interim);
       if (interim) lastInterimRef.current = interim;
       if (final) {
+        processedRef.current = true;
         lastInterimRef.current = "";
         setTranscript(final);
         setParsed(parseVoice(final));
