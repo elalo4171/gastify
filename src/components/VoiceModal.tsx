@@ -11,126 +11,61 @@ interface VoiceModalProps {
   onSaved: () => void;
 }
 
-// Audio spectrum visualizer using Web Audio API
+// Animated spectrum visualizer (no mic capture — avoids conflict with SpeechRecognition on Android)
 function AudioSpectrum({ active }: { active: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef<number>(0);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    cancelAnimationFrame(animRef.current);
+
     if (!active) {
-      cancelAnimationFrame(animRef.current);
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-      // Draw flat line when inactive
-      const canvas = canvasRef.current;
-      if (canvas) {
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          const centerY = canvas.height / 2;
-          ctx.strokeStyle = "#444444";
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(0, centerY);
-          ctx.lineTo(canvas.width, centerY);
-          ctx.stroke();
-        }
-      }
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const centerY = canvas.height / 2;
+      ctx.strokeStyle = "#444444";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, centerY);
+      ctx.lineTo(canvas.width, centerY);
+      ctx.stroke();
       return;
     }
 
     let running = true;
+    const barCount = 40;
+    const barWidth = canvas.width / barCount;
+    const centerY = canvas.height / 2;
 
-    const startVisualizer = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        streamRef.current = stream;
-        const audioCtx = new AudioContext();
-        const source = audioCtx.createMediaStreamSource(stream);
-        const analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 128;
-        analyser.smoothingTimeConstant = 0.8;
-        source.connect(analyser);
-        analyserRef.current = analyser;
-
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-
-        const bufferLength = analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-        const barCount = 40;
-        const barWidth = canvas.width / barCount;
-        const centerY = canvas.height / 2;
-
-        const draw = () => {
-          if (!running) return;
-          animRef.current = requestAnimationFrame(draw);
-          analyser.getByteFrequencyData(dataArray);
-
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-          for (let i = 0; i < barCount; i++) {
-            const dataIndex = Math.floor((i / barCount) * bufferLength);
-            const value = dataArray[dataIndex] / 255;
-            const barHeight = Math.max(value * centerY * 0.9, 1.5);
-
-            // Gradient from accent to dimmer
-            const intensity = value;
-            const r = 232;
-            const g = 93 + (1 - intensity) * 50;
-            const b = 93 + (1 - intensity) * 50;
-            ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${0.4 + intensity * 0.6})`;
-
-            const x = i * barWidth + 1;
-            const w = barWidth - 2;
-            const radius = Math.min(w / 2, 3);
-
-            // Top bar
-            roundRect(ctx, x, centerY - barHeight, w, barHeight, radius);
-            // Bottom bar (mirror)
-            roundRect(ctx, x, centerY, w, barHeight, radius);
-          }
-        };
-
-        draw();
-      } catch {
-        // Mic access denied — show animated fallback
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-        const centerY = canvas.height / 2;
-        const barCount = 40;
-        const barWidth = canvas.width / barCount;
-
-        const drawFallback = () => {
-          if (!running) return;
-          animRef.current = requestAnimationFrame(drawFallback);
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          const t = Date.now() / 1000;
-          for (let i = 0; i < barCount; i++) {
-            const h = Math.abs(Math.sin(t * 3 + i * 0.3)) * centerY * 0.6 + 2;
-            ctx.fillStyle = `rgba(232, 93, 93, ${0.3 + Math.abs(Math.sin(t * 3 + i * 0.3)) * 0.5})`;
-            const x = i * barWidth + 1;
-            const w = barWidth - 2;
-            roundRect(ctx, x, centerY - h, w, h, 2);
-            roundRect(ctx, x, centerY, w, h, 2);
-          }
-        };
-        drawFallback();
+    const draw = () => {
+      if (!running) return;
+      animRef.current = requestAnimationFrame(draw);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const t = Date.now() / 1000;
+      for (let i = 0; i < barCount; i++) {
+        const wave = Math.abs(Math.sin(t * 3 + i * 0.3));
+        const h = wave * centerY * 0.6 + 2;
+        ctx.fillStyle = `rgba(232, 93, 93, ${0.3 + wave * 0.5})`;
+        const x = i * barWidth + 1;
+        const w = barWidth - 2;
+        const r = Math.min(w / 2, 3);
+        // Top bar
+        ctx.beginPath();
+        ctx.roundRect(x, centerY - h, w, h, r);
+        ctx.fill();
+        // Bottom bar (mirror)
+        ctx.beginPath();
+        ctx.roundRect(x, centerY, w, h, r);
+        ctx.fill();
       }
     };
 
-    startVisualizer();
-
-    return () => {
-      running = false;
-      cancelAnimationFrame(animRef.current);
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-    };
+    draw();
+    return () => { running = false; cancelAnimationFrame(animRef.current); };
   }, [active]);
 
   return (
@@ -141,20 +76,6 @@ function AudioSpectrum({ active }: { active: boolean }) {
       className="w-full max-w-xs h-[120px]"
     />
   );
-}
-
-function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.fill();
 }
 
 export default function VoiceModal({ open, onClose, onSaved }: VoiceModalProps) {
