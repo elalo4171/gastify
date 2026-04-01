@@ -33,8 +33,10 @@ export async function updateSession(request: NextRequest) {
   const publicRoutes = ["/", "/landing", "/login"];
   const isPublic = publicRoutes.includes(pathname) || pathname.startsWith("/api/");
 
+  const isDemo = request.cookies.get("gastify_demo")?.value === "true";
+
   // Not logged in and not on a public route → redirect to login
-  if (!user && !isPublic) {
+  if (!user && !isPublic && !isDemo) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

@@ -10,6 +10,8 @@ import { es } from "date-fns/locale";
 import { MONEDAS } from "@/lib/types";
 import { useTheme } from "@/components/ThemeProvider";
 import { useToast } from "@/components/Toast";
+import { useDemo } from "@/lib/demo-context";
+import { demoStore } from "@/lib/demo-store";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import OverlayPanel from "@/components/OverlayPanel";
 import Link from "next/link";
@@ -19,6 +21,7 @@ export default function Dashboard() {
   const { categorias } = useCategorias();
   const { years: availableYears, refetch: refetchYears } = useYears();
   const { theme, setTheme } = useTheme();
+  const { isDemo } = useDemo();
   const [mounted, setMounted] = useState(false);
   const [simbolo, setSimbolo] = useState("$");
   const [showSettings, setShowSettings] = useState(false);
@@ -273,7 +276,7 @@ export default function Dashboard() {
                     descripcion: quickDesc.trim(),
                     categoria_id: quickCatId,
                     fecha: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10),
-                  });
+                  }, isDemo);
                   setQuickSaving(false);
                   setQuickDesc("");
                   setQuickMonto("");
@@ -367,8 +370,13 @@ export default function Dashboard() {
                 {/* Export */}
                 <button
                   onClick={async () => {
-                    const res = await fetch("/api/exportar");
-                    const data = await res.json();
+                    let data;
+                    if (isDemo) {
+                      data = demoStore.getExportData();
+                    } else {
+                      const res = await fetch("/api/exportar");
+                      data = await res.json();
+                    }
                     if (data.length === 0) { show("No hay datos", "error"); return; }
                     descargarCSV(generarCSV(data), `gastify-${new Date().toISOString().slice(0, 10)}.csv`);
                     show("CSV descargado");
@@ -420,7 +428,7 @@ export default function Dashboard() {
         confirmLabel="Eliminar definitivamente"
         destructive
         onConfirm={async () => {
-          await fetch("/api/registros/delete-all", { method: "DELETE" });
+          if (isDemo) { demoStore.deleteAllRegistros(); } else { await fetch("/api/registros/delete-all", { method: "DELETE" }); }
           setConfirmDeleteFinal(false);
           show("Todos los registros eliminados");
           handleRefresh();
@@ -436,6 +444,7 @@ export default function Dashboard() {
 function CategoriesModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { categorias, loading, refetch } = useAllCategorias();
   const { show } = useToast();
+  const { isDemo } = useDemo();
   const [adding, setAdding] = useState(false);
   const [newEmoji, setNewEmoji] = useState("");
   const [newName, setNewName] = useState("");
@@ -454,7 +463,7 @@ function CategoriesModal({ open, onClose }: { open: boolean; onClose: () => void
             <div key={cat.id} className="flex flex-col items-center">
               <button
                 onClick={async () => {
-                  await actualizarCategoria(cat.id, { visible: !cat.visible });
+                  await actualizarCategoria(cat.id, { visible: !cat.visible }, isDemo);
                   refetch();
                 }}
                 className={`aspect-square w-full rounded-2xl flex items-center justify-center text-3xl transition-all active:scale-95 ${
@@ -483,7 +492,7 @@ function CategoriesModal({ open, onClose }: { open: boolean; onClose: () => void
                 <button
                   onClick={async () => {
                     if (!newEmoji.trim() || !newName.trim()) return;
-                    await crearCategoria({ nombre: newName.trim(), emoji: newEmoji.trim() });
+                    await crearCategoria({ nombre: newName.trim(), emoji: newEmoji.trim() }, isDemo);
                     setNewEmoji(""); setNewName(""); setAdding(false); refetch(); show("Categoría creada");
                   }}
                   className="text-[11px] text-[var(--color-accent)] font-semibold"
@@ -508,6 +517,7 @@ function MovimientosModal({ open, onClose, onRefresh }: { open: boolean; onClose
   const { registros, loading, refetch } = useRegistros();
   const { categorias } = useCategorias();
   const { show } = useToast();
+  const { isDemo } = useDemo();
   const [search, setSearch] = useState("");
   const [filtroTipo, setFiltroTipo] = useState<"todos" | "entrada" | "salida">("todos");
   const [mesOffset, setMesOffset] = useState(0); // 0 = este mes, -1 = anterior, etc.
@@ -619,7 +629,7 @@ function MovimientosModal({ open, onClose, onRefresh }: { open: boolean; onClose
               registro={r}
               onClick={() => {
                 if (confirm(`¿Eliminar "${r.descripcion}"?`)) {
-                  eliminarRegistro(r.id).then(() => {
+                  eliminarRegistro(r.id, isDemo).then(() => {
                     refetch();
                     onRefresh();
                     show("Registro eliminado");

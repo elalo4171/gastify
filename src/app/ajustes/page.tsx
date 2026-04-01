@@ -151,6 +151,22 @@ export default function AjustesPage() {
           onClick={() => router.push("/categorias")}
         />
 
+        {/* Subscription */}
+        <SettingsItem
+          icon="⭐"
+          label="Suscripción"
+          sub="Gestionar plan"
+          onClick={async () => {
+            const res = await fetch("/api/stripe/portal", { method: "POST" });
+            if (res.ok) {
+              const { url } = await res.json();
+              if (url) window.location.href = url;
+            } else {
+              router.push("/suscripcion");
+            }
+          }}
+        />
+
         {/* Export */}
         <SettingsItem icon="📤" label="Exportar datos" sub="Descargar CSV" onClick={handleExport} />
 

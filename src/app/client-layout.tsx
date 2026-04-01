@@ -4,10 +4,12 @@ import { useState, useEffect, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ToastProvider } from "@/components/Toast";
+import { DemoProvider } from "@/lib/demo-context";
 import Navbar from "@/components/Navbar";
 import NuevoRegistro from "@/components/NuevoRegistro";
 import VoiceModal from "@/components/VoiceModal";
 import Onboarding from "@/components/Onboarding";
+import DemoBanner from "@/components/DemoBanner";
 
 export function ClientLayout({ children }: { children: ReactNode }) {
   const [modalOpen, setModalOpen] = useState(false);
@@ -40,7 +42,9 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   if (isLanding || isLogin || isSuscripcion) {
     return (
       <ThemeProvider>
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          <DemoProvider>{children}</DemoProvider>
+        </ToastProvider>
       </ThemeProvider>
     );
   }
@@ -48,28 +52,31 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider>
       <ToastProvider>
-        {mounted && showOnboarding && (
-          <Onboarding
-            onComplete={() => {
-              setShowOnboarding(false);
-              window.dispatchEvent(new CustomEvent("registro-saved"));
-            }}
+        <DemoProvider>
+          <DemoBanner />
+          {mounted && showOnboarding && (
+            <Onboarding
+              onComplete={() => {
+                setShowOnboarding(false);
+                window.dispatchEvent(new CustomEvent("registro-saved"));
+              }}
+            />
+          )}
+          <main className="app-container">
+            {children}
+          </main>
+          <Navbar onFabClick={() => setModalOpen(true)} onVoiceClick={() => setVoiceOpen(true)} />
+          <NuevoRegistro
+            open={modalOpen}
+            onClose={() => setModalOpen(false)}
+            onSaved={handleSaved}
           />
-        )}
-        <main className="app-container">
-          {children}
-        </main>
-        <Navbar onFabClick={() => setModalOpen(true)} onVoiceClick={() => setVoiceOpen(true)} />
-        <NuevoRegistro
-          open={modalOpen}
-          onClose={() => setModalOpen(false)}
-          onSaved={handleSaved}
-        />
-        <VoiceModal
-          open={voiceOpen}
-          onClose={() => setVoiceOpen(false)}
-          onSaved={handleSaved}
-        />
+          <VoiceModal
+            open={voiceOpen}
+            onClose={() => setVoiceOpen(false)}
+            onSaved={handleSaved}
+          />
+        </DemoProvider>
       </ToastProvider>
     </ThemeProvider>
   );

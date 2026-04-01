@@ -4,6 +4,8 @@ import { formatMonto, getMonedaFromStorage } from "@/lib/utils";
 import { useEffect, useState, useCallback } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useDemo } from "@/lib/demo-context";
+import { demoStore } from "@/lib/demo-store";
 
 interface BalanceCardProps {
   balance: number;
@@ -17,6 +19,7 @@ interface BalanceCardProps {
 const MONTH_LABELS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
 export default function BalanceCard({ balance, entradas, salidas, loading, onMonthChange, availableYears = [] }: BalanceCardProps) {
+  const { isDemo } = useDemo();
   const [simbolo, setSimbolo] = useState("$");
   const [showPicker, setShowPicker] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
@@ -37,9 +40,13 @@ export default function BalanceCard({ balance, entradas, salidas, loading, onMon
   }, []);
 
   const fetchMonthlySummary = useCallback(async (year: number) => {
+    if (isDemo) {
+      setMonthlySummary(demoStore.getMonthlySummary(year));
+      return;
+    }
     const res = await fetch(`/api/registros/monthly-summary?year=${year}`);
     if (res.ok) setMonthlySummary(await res.json());
-  }, []);
+  }, [isDemo]);
 
   // Fetch summary when picker year changes
   useEffect(() => {

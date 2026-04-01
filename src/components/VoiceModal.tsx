@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useCategorias, crearRegistro } from "@/lib/hooks";
+import { useDemo } from "@/lib/demo-context";
 import { useToast } from "./Toast";
 
 interface VoiceModalProps {
@@ -159,6 +160,7 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 export default function VoiceModal({ open, onClose, onSaved }: VoiceModalProps) {
   const { categorias } = useCategorias();
   const { show } = useToast();
+  const { isDemo } = useDemo();
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [interimText, setInterimText] = useState("");
@@ -277,7 +279,7 @@ export default function VoiceModal({ open, onClose, onSaved }: VoiceModalProps) 
       descripcion: parsed.desc,
       categoria_id: cat?.id || null,
       fecha: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10),
-    });
+    }, isDemo);
     setSaving(false);
     show("Registro guardado");
     onSaved();
@@ -341,14 +343,20 @@ export default function VoiceModal({ open, onClose, onSaved }: VoiceModalProps) 
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-[var(--color-text-secondary)]">Tipo</span>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${
-                parsed.tipo === "entrada" ? "bg-[var(--color-income-bg)] text-[var(--color-income)]" : "bg-[var(--color-expense-bg)] text-[var(--color-expense)]"
-              }`}>
-                {parsed.tipo === "entrada" ? "Entrada" : "Salida"}
-              </span>
+              <button
+                onClick={() => setParsed({ ...parsed, tipo: parsed.tipo === "entrada" ? "salida" : "entrada" })}
+                className={`text-xs px-2.5 py-1 rounded-full font-medium transition-all active:scale-95 ${
+                  parsed.tipo === "entrada" ? "bg-[var(--color-income-bg)] text-[var(--color-income)]" : "bg-[var(--color-expense-bg)] text-[var(--color-expense)]"
+                }`}
+              >
+                {parsed.tipo === "entrada" ? "Entrada ↔" : "Salida ↔"}
+              </button>
             </div>
             <div>
-              <span className="text-sm text-[var(--color-text-secondary)] mb-2 block">Categoría</span>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-sm text-[var(--color-text-secondary)]">Categoría</span>
+                {!parsed.catName && <span className="text-xs text-[var(--color-accent)]">* Requerida</span>}
+              </div>
               <div className="flex flex-wrap gap-1.5">
                 {categorias.map((cat) => (
                   <button
@@ -375,7 +383,7 @@ export default function VoiceModal({ open, onClose, onSaved }: VoiceModalProps) 
               </button>
               <button
                 onClick={handleSave}
-                disabled={saving || !parsed.amount || !parsed.desc}
+                disabled={saving || !parsed.amount || !parsed.desc || !parsed.catName}
                 className="flex-1 py-3 rounded-xl bg-[var(--color-accent)] text-sm font-semibold text-white active:scale-[0.97] disabled:opacity-30"
               >
                 {saving ? "..." : "Guardar"}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { Registro } from "@/lib/types";
 import { useCategorias, crearRegistro, actualizarRegistro, crearCategoria } from "@/lib/hooks";
+import { useDemo } from "@/lib/demo-context";
 import { getMonedaFromStorage } from "@/lib/utils";
 import { useToast } from "./Toast";
 import { format, parseISO } from "date-fns";
@@ -18,6 +19,7 @@ interface NuevoRegistroProps {
 export default function NuevoRegistro({ open, onClose, onSaved, editando }: NuevoRegistroProps) {
   const { categorias, refetch: refetchCats } = useCategorias();
   const { show } = useToast();
+  const { isDemo } = useDemo();
   const [tipo, setTipo] = useState<"entrada" | "salida">("salida");
   const [monto, setMonto] = useState("");
   const [descripcion, setDescripcion] = useState("");
@@ -75,10 +77,10 @@ export default function NuevoRegistro({ open, onClose, onSaved, editando }: Nuev
     };
 
     if (editando) {
-      await actualizarRegistro(editando.id, payload);
+      await actualizarRegistro(editando.id, payload, isDemo);
       show("Registro actualizado");
     } else {
-      await crearRegistro(payload);
+      await crearRegistro(payload, isDemo);
       show("Registro guardado");
     }
 
@@ -331,7 +333,7 @@ export default function NuevoRegistro({ open, onClose, onSaved, editando }: Nuev
               onClick={async () => {
                 if (!newCatEmoji.trim() || !newCatName.trim()) return;
                 setSavingCat(true);
-                const { data } = await crearCategoria({ nombre: newCatName.trim(), emoji: newCatEmoji.trim() });
+                const { data } = await crearCategoria({ nombre: newCatName.trim(), emoji: newCatEmoji.trim() }, isDemo);
                 setSavingCat(false);
                 if (data) {
                   setCategoriaId(data.id);
