@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import Stripe from "stripe";
 
@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
 
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+    event = getStripe().webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
   } catch {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
@@ -19,6 +19,9 @@ export async function POST(req: NextRequest) {
     case "customer.subscription.updated": {
       const sub = event.data.object as Stripe.Subscription;
       const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
+      const periodEnd = sub.items.data[0]?.current_period_end
+        ? new Date(sub.items.data[0].current_period_end * 1000)
+        : null;
 
       await prisma.subscription.upsert({
         where: { stripe_customer_id: customerId },
@@ -26,15 +29,15 @@ export async function POST(req: NextRequest) {
           stripe_subscription_id: sub.id,
           status: sub.status,
           trial_end: sub.trial_end ? new Date(sub.trial_end * 1000) : null,
-          current_period_end: new Date(sub.current_period_end * 1000),
+          current_period_end: periodEnd,
         },
         create: {
-          user_id: (sub.metadata?.user_id || (await getCustomerUserId(customerId)))!,
+          user_id: sub.metadata?.user_id || (await getCustomerUserId(customerId)),
           stripe_customer_id: customerId,
           stripe_subscription_id: sub.id,
           status: sub.status,
           trial_end: sub.trial_end ? new Date(sub.trial_end * 1000) : null,
-          current_period_end: new Date(sub.current_period_end * 1000),
+          current_period_end: periodEnd,
         },
       });
       break;
@@ -56,6 +59,6 @@ export async function POST(req: NextRequest) {
 }
 
 async function getCustomerUserId(customerId: string): Promise<string> {
-  const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
+  const customer = await getStripe().customers.retrieve(customerId) as Stripe.Customer;
   return customer.metadata.user_id;
 }
