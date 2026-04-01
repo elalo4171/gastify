@@ -82,7 +82,7 @@
   padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
 }
 
-/* When dashboard is active, lock ALL scroll containers */
+/* When dashboard is active, lock scroll on mobile */
 html:has(.dashboard-root),
 html:has(.dashboard-root) body,
 .app-container:has(.dashboard-root) {
@@ -90,6 +90,18 @@ html:has(.dashboard-root) body,
   min-height: unset;
   overflow: hidden;
   padding-bottom: 0;
+}
+
+/* ─── Desktop layout ─────────────────────────── */
+@media (min-width: 768px) {
+  .app-container {
+    max-width: 1200px;
+    padding: 0 40px;
+  }
+
+  .app-container:has(.dashboard-root) {
+    padding: 0;
+  }
 }
 
 .bottom-safe {

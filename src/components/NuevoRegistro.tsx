@@ -22,7 +22,7 @@ export default function NuevoRegistro({ open, onClose, onSaved, editando }: Nuev
   const [monto, setMonto] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [categoriaId, setCategoriaId] = useState<string | null>(null);
-  const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10));
+  const [fecha, setFecha] = useState(() => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
   const [closing, setClosing] = useState(false);
   const [simbolo, setSimbolo] = useState("$");
@@ -30,6 +30,8 @@ export default function NuevoRegistro({ open, onClose, onSaved, editando }: Nuev
   const [newCatEmoji, setNewCatEmoji] = useState("");
   const [newCatName, setNewCatName] = useState("");
   const [savingCat, setSavingCat] = useState(false);
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const dateRef = useRef<HTMLInputElement>(null);
   const descRef = useRef<HTMLInputElement>(null);
 
@@ -49,7 +51,7 @@ export default function NuevoRegistro({ open, onClose, onSaved, editando }: Nuev
       setMonto("");
       setDescripcion("");
       setCategoriaId(null);
-      setFecha(new Date().toISOString().slice(0, 10));
+      setFecha(new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10));
       setTimeout(() => descRef.current?.focus(), 100);
     }
   }, [open, editando]);
@@ -85,10 +87,117 @@ export default function NuevoRegistro({ open, onClose, onSaved, editando }: Nuev
     handleClose();
   };
 
+  // ── Voice recognition ──
+  const parseVoiceInput = (text: string) => {
+    const lower = text.toLowerCase().trim();
+
+    // Extract number (supports "500", "mil", "mil quinientos", "1,500", "1.500")
+    let amount = "";
+    const numMatch = lower.match(/(\d[\d,._]*)/);
+    if (numMatch) {
+      amount = numMatch[1].replace(/[,_]/g, "");
+    } else {
+      // Spanish number words
+      const wordNums: Record<string, number> = {
+        cien: 100, ciento: 100, doscientos: 200, trescientos: 300, cuatrocientos: 400,
+        quinientos: 500, seiscientos: 600, setecientos: 700, ochocientos: 800, novecientos: 900,
+        mil: 1000, dos: 2, tres: 3, cuatro: 4, cinco: 5, diez: 10, veinte: 20,
+        treinta: 30, cuarenta: 40, cincuenta: 50, sesenta: 60, setenta: 70, ochenta: 80, noventa: 90,
+      };
+      let total = 0;
+      for (const [word, val] of Object.entries(wordNums)) {
+        if (lower.includes(word)) {
+          total = val === 1000 ? (total || 1) * 1000 : total + val;
+        }
+      }
+      if (total > 0) amount = String(total);
+    }
+
+    // Remove the number part to get description
+    let desc = lower
+      .replace(/(\d[\d,._]*)\s*(pesos|dólares|dolares|euros|varos|bolas)?/g, "")
+      .replace(/\b(de|en|por|para|el|la|los|las|un|una|unos|unas)\b/g, " ")
+      .trim()
+      .replace(/\s+/g, " ");
+
+    // Detect tipo
+    let detectedTipo: "entrada" | "salida" = "salida";
+    if (lower.includes("ingreso") || lower.includes("entrada") || lower.includes("nómina") || lower.includes("nomina") || lower.includes("salario") || lower.includes("cobr")) {
+      detectedTipo = "entrada";
+    }
+
+    // Match category by keywords
+    const categoryKeywords: Record<string, string[]> = {
+      comida: ["comida", "comer", "restaurante", "hamburguesa", "pizza", "tacos", "sushi", "desayuno", "almuerzo", "cena", "uber eats", "rappi"],
+      transporte: ["gas", "gasolina", "uber", "taxi", "camión", "metro", "estacionamiento", "carro", "coche", "auto"],
+      hogar: ["renta", "luz", "agua", "internet", "cable", "limpieza", "casa", "hogar"],
+      salud: ["doctor", "medicina", "farmacia", "hospital", "dentista", "lentes", "salud"],
+      entretenimiento: ["cine", "netflix", "spotify", "juego", "fiesta", "bar", "concierto"],
+      educación: ["libro", "curso", "escuela", "universidad", "clase", "educación"],
+      compras: ["ropa", "zapatos", "amazon", "tienda", "shopping", "compra"],
+      trabajo: ["salario", "nómina", "nomina", "sueldo", "trabajo", "freelance", "cobr"],
+      servicios: ["teléfono", "celular", "suscripción", "membresía", "servicio"],
+    };
+
+    let matchedCatId: string | null = null;
+    for (const cat of categorias) {
+      const keywords = categoryKeywords[cat.nombre.toLowerCase()] || [];
+      const catNameLower = cat.nombre.toLowerCase();
+      if (lower.includes(catNameLower) || keywords.some((kw) => lower.includes(kw))) {
+        matchedCatId = cat.id;
+        break;
+      }
+    }
+
+    // Clean up description - capitalize first letter
+    if (desc) {
+      desc = desc.charAt(0).toUpperCase() + desc.slice(1);
+    }
+
+    return { amount, desc, tipo: detectedTipo, catId: matchedCatId };
+  };
+
+  const startListening = () => {
+    const SpeechRecognition = window.SpeechRecognition || (window as unknown as { webkitSpeechRecognition: typeof window.SpeechRecognition }).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      show("Tu navegador no soporta reconocimiento de voz", "error");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "es-MX";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => setListening(true);
+    recognition.onend = () => setListening(false);
+    recognition.onerror = () => setListening(false);
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = event.results[0][0].transcript;
+      const parsed = parseVoiceInput(transcript);
+
+      if (parsed.desc) setDescripcion(parsed.desc);
+      if (parsed.amount) setMonto(parsed.amount);
+      if (parsed.catId) setCategoriaId(parsed.catId);
+      setTipo(parsed.tipo);
+
+      show(`"${transcript}"`);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  const stopListening = () => {
+    recognitionRef.current?.stop();
+    setListening(false);
+  };
+
   if (!open) return null;
 
   const fechaLabel = (() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
     if (fecha === today) return "Hoy";
     return format(parseISO(fecha), "d MMM", { locale: es });
   })();
@@ -96,9 +205,14 @@ export default function NuevoRegistro({ open, onClose, onSaved, editando }: Nuev
   const selectedCat = categorias.find((c) => c.id === categoriaId);
 
   return (
-    <div className={`fixed inset-0 z-50 bg-[var(--color-bg-primary)] flex flex-col ${
+    <div className={`fixed inset-0 z-50 flex items-center justify-center ${
       closing ? "animate-slide-down" : "animate-fade-in"
     }`}>
+      {/* Backdrop on desktop */}
+      <div className="hidden md:block absolute inset-0 bg-black/60" onClick={handleClose} />
+
+      {/* Panel — fullscreen on mobile, centered card on desktop */}
+      <div className="relative w-full h-full md:w-[480px] md:h-auto md:max-h-[90vh] md:rounded-2xl bg-[var(--color-bg-primary)] flex flex-col md:overflow-auto">
       {/* Close button */}
       <div className="px-5 pt-4">
         <button
@@ -240,8 +354,15 @@ export default function NuevoRegistro({ open, onClose, onSaved, editando }: Nuev
       {/* Fixed bottom bar */}
       <div className="px-5 pb-6 pt-3 border-t border-[var(--color-border)]">
         <div className="flex items-center gap-3">
-          <button className="w-12 h-12 flex items-center justify-center rounded-xl border border-[var(--color-border)] text-[var(--color-text-secondary)] text-lg font-mono">
-            #
+          <button
+            onClick={listening ? stopListening : startListening}
+            className={`w-12 h-12 flex items-center justify-center rounded-xl border text-lg transition-all ${
+              listening
+                ? "bg-[var(--color-accent)] border-[var(--color-accent)] text-white shadow-[0_0_20px_rgba(232,93,93,0.4)] animate-pulse"
+                : "border-[var(--color-border)] text-[var(--color-text-secondary)]"
+            }`}
+          >
+            🎙️
           </button>
           <button
             onClick={handleSave}
@@ -252,6 +373,7 @@ export default function NuevoRegistro({ open, onClose, onSaved, editando }: Nuev
             {saving ? "Guardando..." : editando ? "Actualizar" : "Guardar"}
           </button>
         </div>
+      </div>
       </div>
     </div>
   );

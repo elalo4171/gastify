@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/supabase/user";
 
 // GET /api/estadisticas?fecha_inicio=2024-01-01&fecha_fin=2024-12-31
 export async function GET(req: NextRequest) {
+  const user = await requireUser();
   const params = req.nextUrl.searchParams;
   const fechaInicio = params.get("fecha_inicio");
   const fechaFin = params.get("fecha_fin");
@@ -13,6 +15,7 @@ export async function GET(req: NextRequest) {
 
   const registros = await prisma.registro.findMany({
     where: {
+      user_id: user.id,
       fecha: {
         gte: new Date(fechaInicio),
         lte: new Date(fechaFin),

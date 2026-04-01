@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/supabase/user";
 
 // GET /api/registros?limit=10&tipo=salida&categoria_id=xxx&fecha_inicio=2024-01-01&fecha_fin=2024-12-31
 export async function GET(req: NextRequest) {
+  const user = await requireUser();
   const params = req.nextUrl.searchParams;
   const limit = params.get("limit") ? parseInt(params.get("limit")!) : undefined;
   const tipo = params.get("tipo");
@@ -10,7 +12,7 @@ export async function GET(req: NextRequest) {
   const fechaInicio = params.get("fecha_inicio");
   const fechaFin = params.get("fecha_fin");
 
-  const where: Record<string, unknown> = {};
+  const where: Record<string, unknown> = { user_id: user.id };
   if (tipo && tipo !== "todos") where.tipo = tipo;
   if (categoriaId) where.categoria_id = categoriaId;
 
@@ -26,7 +28,6 @@ export async function GET(req: NextRequest) {
     ...(limit ? { take: limit } : {}),
   });
 
-  // Serialize Decimal and Date fields
   const serialized = registros.map((r) => ({
     ...r,
     monto: Number(r.monto),
@@ -42,6 +43,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/registros
 export async function POST(req: NextRequest) {
+  const user = await requireUser();
   const body = await req.json();
   const { tipo, monto, descripcion, categoria_id, fecha } = body;
 
@@ -56,6 +58,7 @@ export async function POST(req: NextRequest) {
       descripcion: descripcion.trim(),
       categoria_id: categoria_id || null,
       fecha: new Date(fecha),
+      user_id: user.id,
     },
     include: { categoria: true },
   });
@@ -73,6 +76,7 @@ export async function POST(req: NextRequest) {
 
 // PUT /api/registros
 export async function PUT(req: NextRequest) {
+  const user = await requireUser();
   const body = await req.json();
   const { id, ...updates } = body;
 
@@ -83,7 +87,7 @@ export async function PUT(req: NextRequest) {
   if (updates.fecha) updates.fecha = new Date(updates.fecha);
 
   const registro = await prisma.registro.update({
-    where: { id },
+    where: { id, user_id: user.id },
     data: updates,
     include: { categoria: true },
   });
@@ -101,12 +105,13 @@ export async function PUT(req: NextRequest) {
 
 // DELETE /api/registros?id=xxx
 export async function DELETE(req: NextRequest) {
+  const user = await requireUser();
   const id = req.nextUrl.searchParams.get("id");
 
   if (!id) {
     return NextResponse.json({ error: "id requerido" }, { status: 400 });
   }
 
-  await prisma.registro.delete({ where: { id } });
+  await prisma.registro.delete({ where: { id, user_id: user.id } });
   return NextResponse.json({ ok: true });
 }

@@ -62,27 +62,49 @@ export function useRegistros(limit?: number) {
 }
 
 // ── Balance del mes ─────────────────────────────────────
-export function useBalanceMes() {
+export function useBalanceMes(month?: number, year?: number) {
   const [entradas, setEntradas] = useState(0);
   const [salidas, setSalidas] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const fetchBalance = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/registros/balance");
+    const params = new URLSearchParams();
+    if (month !== undefined) params.set("month", month.toString());
+    if (year !== undefined) params.set("year", year.toString());
+    const res = await fetch(`/api/registros/balance?${params}`);
     if (res.ok) {
       const data = await res.json();
       setEntradas(data.entradas);
       setSalidas(data.salidas);
     }
     setLoading(false);
-  }, []);
+  }, [month, year]);
 
   useEffect(() => {
     fetchBalance();
   }, [fetchBalance]);
 
   return { entradas, salidas, balance: entradas - salidas, loading, refetch: fetchBalance };
+}
+
+// ── Años con registros ──────────────────────────────────
+export function useYears() {
+  const [years, setYears] = useState<number[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchYears = useCallback(async () => {
+    setLoading(true);
+    const res = await fetch("/api/registros/years");
+    if (res.ok) setYears(await res.json());
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchYears();
+  }, [fetchYears]);
+
+  return { years, loading, refetch: fetchYears };
 }
 
 // ── CRUD ────────────────────────────────────────────────

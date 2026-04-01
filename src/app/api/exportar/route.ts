@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/supabase/user";
 
 // GET /api/exportar — returns all registros for CSV export
 export async function GET() {
+  const user = await requireUser();
+
   const registros = await prisma.registro.findMany({
+    where: { user_id: user.id },
     include: { categoria: true },
     orderBy: { fecha: "desc" },
   });

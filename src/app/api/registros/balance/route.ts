@@ -1,14 +1,24 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/supabase/user";
 
-// GET /api/registros/balance — returns current month's entradas/salidas
-export async function GET() {
+// GET /api/registros/balance — returns entradas/salidas for a given month (defaults to current)
+export async function GET(request: NextRequest) {
+  const user = await requireUser();
+  const { searchParams } = request.nextUrl;
+  const monthParam = searchParams.get("month");
+  const yearParam = searchParams.get("year");
+
   const now = new Date();
-  const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1);
-  const finMes = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const year = yearParam ? parseInt(yearParam) : now.getFullYear();
+  const month = monthParam ? parseInt(monthParam) : now.getMonth();
+
+  const inicioMes = new Date(year, month, 1);
+  const finMes = new Date(year, month + 1, 0);
 
   const registros = await prisma.registro.findMany({
     where: {
+      user_id: user.id,
       fecha: {
         gte: inicioMes,
         lte: finMes,

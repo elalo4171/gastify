@@ -65,7 +65,7 @@ export default function MovimientosPage() {
   ];
 
   return (
-    <div className="pt-8 animate-fade-in">
+    <div className="pt-8 animate-fade-in max-w-2xl mx-auto">
       <div className="flex items-center gap-3 mb-5">
         <button
           onClick={() => window.history.back()}

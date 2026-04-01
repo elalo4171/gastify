@@ -80,7 +80,7 @@ export default function AjustesPage() {
   ];
 
   return (
-    <div className="pt-8 animate-fade-in">
+    <div className="pt-8 animate-fade-in max-w-lg mx-auto">
       {/* Header with close button */}
       <div className="flex items-center gap-3 mb-5">
         <button
@@ -161,6 +161,20 @@ export default function AjustesPage() {
           sub="Borrar todos los registros"
           destructive
           onClick={() => setConfirmDeleteAll(true)}
+        />
+
+        <div className="h-3" />
+
+        {/* Logout */}
+        <SettingsItem
+          icon="🚪"
+          label="Cerrar sesión"
+          destructive
+          onClick={async () => {
+            await fetch("/api/auth/logout", { method: "POST" });
+            router.push("/login");
+            router.refresh();
+          }}
         />
       </div>
 

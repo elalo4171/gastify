@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/supabase/user";
 
 // GET /api/categorias?all=true (all=true includes hidden)
 export async function GET(req: NextRequest) {
+  const user = await requireUser();
   const showAll = req.nextUrl.searchParams.get("all") === "true";
 
   const categorias = await prisma.categoria.findMany({
-    where: showAll ? {} : { visible: true },
+    where: {
+      user_id: user.id,
+      ...(showAll ? {} : { visible: true }),
+    },
     orderBy: [{ es_predeterminada: "desc" }, { nombre: "asc" }],
   });
 
@@ -15,6 +20,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/categorias
 export async function POST(req: NextRequest) {
+  const user = await requireUser();
   const body = await req.json();
   const { nombre, emoji } = body;
 
@@ -28,6 +34,7 @@ export async function POST(req: NextRequest) {
       emoji: emoji.trim(),
       es_predeterminada: false,
       visible: true,
+      user_id: user.id,
     },
   });
 
@@ -36,6 +43,7 @@ export async function POST(req: NextRequest) {
 
 // PUT /api/categorias
 export async function PUT(req: NextRequest) {
+  const user = await requireUser();
   const body = await req.json();
   const { id, ...updates } = body;
 
@@ -44,7 +52,7 @@ export async function PUT(req: NextRequest) {
   }
 
   const categoria = await prisma.categoria.update({
-    where: { id },
+    where: { id, user_id: user.id },
     data: updates,
   });
 
@@ -53,12 +61,13 @@ export async function PUT(req: NextRequest) {
 
 // DELETE /api/categorias?id=xxx
 export async function DELETE(req: NextRequest) {
+  const user = await requireUser();
   const id = req.nextUrl.searchParams.get("id");
 
   if (!id) {
     return NextResponse.json({ error: "id requerido" }, { status: 400 });
   }
 
-  await prisma.categoria.delete({ where: { id } });
+  await prisma.categoria.delete({ where: { id, user_id: user.id } });
   return NextResponse.json({ ok: true });
 }

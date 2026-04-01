@@ -40,7 +40,7 @@ export default function CategoriasPage() {
   };
 
   return (
-    <div className="pt-8 animate-fade-in">
+    <div className="pt-8 animate-fade-in max-w-lg mx-auto">
       {/* Header with close */}
       <div className="flex items-center gap-3 mb-8">
         <button
