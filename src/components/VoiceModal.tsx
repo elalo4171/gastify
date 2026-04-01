@@ -167,6 +167,7 @@ export default function VoiceModal({ open, onClose, onSaved }: VoiceModalProps) 
   const [parsed, setParsed] = useState<{ desc: string; amount: string; tipo: "entrada" | "salida"; catName: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const lastInterimRef = useRef("");
 
   const parseVoice = useCallback((text: string) => {
     const lower = text.toLowerCase().trim();
@@ -231,12 +232,26 @@ export default function VoiceModal({ open, onClose, onSaved }: VoiceModalProps) 
     const recognition = new SR();
     recognition.lang = "es-MX";
     recognition.interimResults = true;
-    recognition.continuous = true;
+    recognition.continuous = false;
     recognition.maxAlternatives = 1;
 
-    recognition.onstart = () => setListening(true);
+    recognition.onstart = () => {
+      setListening(true);
+      lastInterimRef.current = "";
+    };
     recognition.onerror = () => setListening(false);
-    recognition.onend = () => setListening(false);
+
+    // Android fix: when recognition ends without a final result,
+    // use the last interim transcript as the result
+    recognition.onend = () => {
+      setListening(false);
+      if (lastInterimRef.current && !transcript) {
+        const text = lastInterimRef.current;
+        setTranscript(text);
+        setParsed(parseVoice(text));
+        lastInterimRef.current = "";
+      }
+    };
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       let interim = "";
@@ -246,7 +261,9 @@ export default function VoiceModal({ open, onClose, onSaved }: VoiceModalProps) 
         else interim += event.results[i][0].transcript;
       }
       setInterimText(interim);
+      if (interim) lastInterimRef.current = interim;
       if (final) {
+        lastInterimRef.current = "";
         setTranscript(final);
         setParsed(parseVoice(final));
         recognition.stop();
@@ -331,15 +348,26 @@ export default function VoiceModal({ open, onClose, onSaved }: VoiceModalProps) 
         {/* Parsed result card */}
         {parsed && (
           <div className="w-full bg-[var(--color-bg-card)] rounded-2xl p-5 animate-fade-in space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-[var(--color-text-secondary)]">Descripción</span>
-              <span className="text-sm font-semibold text-[var(--color-text-primary)]">{parsed.desc || "—"}</span>
+            <div>
+              <span className="text-xs text-[var(--color-text-secondary)] mb-1 block">Descripción</span>
+              <input
+                type="text"
+                value={parsed.desc}
+                onChange={(e) => setParsed({ ...parsed, desc: e.target.value })}
+                placeholder="¿Qué fue?"
+                className="w-full py-2 px-3 rounded-lg bg-[var(--color-bg-secondary)] text-sm font-semibold text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-tertiary)] focus:ring-2 focus:ring-[var(--color-accent)]/30"
+              />
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-[var(--color-text-secondary)]">Monto</span>
-              <span className={`text-sm font-bold ${parsed.tipo === "entrada" ? "text-[var(--color-income)]" : "text-[var(--color-accent)]"}`}>
-                {parsed.amount ? `$${parsed.amount}` : "—"}
-              </span>
+            <div>
+              <span className="text-xs text-[var(--color-text-secondary)] mb-1 block">Monto</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={parsed.amount}
+                onChange={(e) => setParsed({ ...parsed, amount: e.target.value })}
+                placeholder="0.00"
+                className={`w-full py-2 px-3 rounded-lg bg-[var(--color-bg-secondary)] text-sm font-bold outline-none placeholder:text-[var(--color-text-tertiary)] focus:ring-2 focus:ring-[var(--color-accent)]/30 ${parsed.tipo === "entrada" ? "text-[var(--color-income)]" : "text-[var(--color-accent)]"}`}
+              />
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-[var(--color-text-secondary)]">Tipo</span>

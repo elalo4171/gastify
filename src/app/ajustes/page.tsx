@@ -43,6 +43,8 @@ export default function AjustesPage() {
   const [moneda, setMoneda] = useState(getMonedaFromStorage());
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
   const [confirmDeleteAllFinal, setConfirmDeleteAllFinal] = useState(false);
+  const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     setMoneda(getMonedaFromStorage());
@@ -84,7 +86,7 @@ export default function AjustesPage() {
       {/* Header with close button */}
       <div className="flex items-center gap-3 mb-5">
         <button
-          onClick={() => window.history.back()}
+          onClick={() => router.push("/dashboard")}
           className="w-10 h-10 flex items-center justify-center rounded-full bg-[var(--color-bg-elevated)] text-[var(--color-text-secondary)] shrink-0"
         >
           ✕
@@ -192,6 +194,15 @@ export default function AjustesPage() {
             router.refresh();
           }}
         />
+
+        {/* Delete account */}
+        <SettingsItem
+          icon="⚠️"
+          label="Eliminar cuenta"
+          sub="Se perderán todos tus datos"
+          destructive
+          onClick={() => setConfirmDeleteAccount(true)}
+        />
       </div>
 
       {/* Version */}
@@ -214,6 +225,24 @@ export default function AjustesPage() {
         destructive
         onConfirm={handleDeleteAll}
         onCancel={() => setConfirmDeleteAllFinal(false)}
+      />
+      <ConfirmDialog
+        open={confirmDeleteAccount}
+        title="¿Eliminar tu cuenta?"
+        message="Se eliminarán permanentemente todos tus registros, categorías y datos. Si tienes una suscripción activa de Stripe, será cancelada automáticamente. Esta acción no se puede deshacer."
+        confirmLabel={deletingAccount ? "Eliminando..." : "Eliminar mi cuenta"}
+        destructive
+        onConfirm={async () => {
+          setDeletingAccount(true);
+          await fetch("/api/auth/delete-account", { method: "DELETE" });
+          await fetch("/api/auth/logout", { method: "POST" });
+          setDeletingAccount(false);
+          setConfirmDeleteAccount(false);
+          localStorage.clear();
+          router.push("/");
+          router.refresh();
+        }}
+        onCancel={() => setConfirmDeleteAccount(false)}
       />
     </div>
   );

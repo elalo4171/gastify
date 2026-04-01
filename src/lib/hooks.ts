@@ -140,9 +140,10 @@ export function useYears() {
 
 // ── Suscripción ─────────────────────────────────────────
 export function useSubscription() {
-  const [active, setActive] = useState(false);
+  const [active, setActive] = useState(true); // default true to avoid flash
   const [status, setStatus] = useState("loading");
   const [loading, setLoading] = useState(true);
+  const [freeDayEnd, setFreeDayEnd] = useState<string | null>(null);
   const { isDemo } = useDemo();
 
   const fetchStatus = useCallback(async () => {
@@ -156,6 +157,7 @@ export function useSubscription() {
         const data = await res.json();
         setActive(data.active);
         setStatus(data.status);
+        setFreeDayEnd(data.free_day_end || null);
       }
     }
     setLoading(false);
@@ -165,7 +167,7 @@ export function useSubscription() {
     fetchStatus();
   }, [fetchStatus]);
 
-  return { active, status, loading, refetch: fetchStatus };
+  return { active, status, loading, freeDayEnd, refetch: fetchStatus };
 }
 
 // ── CRUD ────────────────────────────────────────────────

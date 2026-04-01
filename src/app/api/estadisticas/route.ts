@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/supabase/user";
+import { apiHandler } from "@/lib/api";
 
 // GET /api/estadisticas?fecha_inicio=2024-01-01&fecha_fin=2024-12-31
-export async function GET(req: NextRequest) {
+export const GET = apiHandler(async (req: NextRequest) => {
   const user = await requireUser();
   const params = req.nextUrl.searchParams;
   const fechaInicio = params.get("fecha_inicio");
@@ -36,4 +37,4 @@ export async function GET(req: NextRequest) {
   }));
 
   return NextResponse.json(serialized);
-}
+});

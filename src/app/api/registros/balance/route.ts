@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/supabase/user";
+import { apiHandler } from "@/lib/api";
 
-// GET /api/registros/balance — returns entradas/salidas for a given month (defaults to current)
-export async function GET(request: NextRequest) {
+// GET /api/registros/balance — returns entradas/salidas for a given month
+export const GET = apiHandler(async (request: NextRequest) => {
   const user = await requireUser();
   const { searchParams } = request.nextUrl;
   const monthParam = searchParams.get("month");
@@ -35,4 +36,4 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({ entradas, salidas, balance: entradas - salidas });
-}
+});

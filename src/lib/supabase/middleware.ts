@@ -30,7 +30,7 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
-  const publicRoutes = ["/", "/landing", "/login"];
+  const publicRoutes = ["/", "/landing", "/login", "/reset-password"];
   const isPublic = publicRoutes.includes(pathname) || pathname.startsWith("/api/");
 
   const isDemo = request.cookies.get("gastify_demo")?.value === "true";
@@ -42,8 +42,8 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Logged in and on login page → redirect to dashboard
-  if (user && pathname === "/login") {
+  // Logged in and on public page → redirect to dashboard
+  if (user && (pathname === "/" || pathname === "/landing" || pathname === "/login")) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);

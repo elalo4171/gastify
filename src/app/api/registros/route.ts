@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/supabase/user";
+import { requireUser, requireActiveSubscription } from "@/lib/supabase/user";
+import { apiHandler } from "@/lib/api";
 
-// GET /api/registros?limit=10&tipo=salida&categoria_id=xxx&fecha_inicio=2024-01-01&fecha_fin=2024-12-31
-export async function GET(req: NextRequest) {
+// GET /api/registros
+export const GET = apiHandler(async (req: NextRequest) => {
   const user = await requireUser();
   const params = req.nextUrl.searchParams;
   const limit = params.get("limit") ? parseInt(params.get("limit")!) : undefined;
@@ -39,16 +40,23 @@ export async function GET(req: NextRequest) {
   }));
 
   return NextResponse.json(serialized);
-}
+});
 
 // POST /api/registros
-export async function POST(req: NextRequest) {
+export const POST = apiHandler(async (req: NextRequest) => {
   const user = await requireUser();
+  await requireActiveSubscription(user.id);
   const body = await req.json();
   const { tipo, monto, descripcion, categoria_id, fecha } = body;
 
-  if (!tipo || !monto || !descripcion?.trim()) {
+  if (!tipo || !monto || !descripcion?.trim() || !fecha) {
     return NextResponse.json({ error: "campos requeridos" }, { status: 400 });
+  }
+  if (!["entrada", "salida"].includes(tipo)) {
+    return NextResponse.json({ error: "tipo inválido" }, { status: 400 });
+  }
+  if (typeof monto !== "number" || monto <= 0) {
+    return NextResponse.json({ error: "monto inválido" }, { status: 400 });
   }
 
   const registro = await prisma.registro.create({
@@ -72,23 +80,29 @@ export async function POST(req: NextRequest) {
       ? { ...registro.categoria, created_at: registro.categoria.created_at.toISOString() }
       : null,
   });
-}
+});
 
 // PUT /api/registros
-export async function PUT(req: NextRequest) {
+export const PUT = apiHandler(async (req: NextRequest) => {
   const user = await requireUser();
+  await requireActiveSubscription(user.id);
   const body = await req.json();
-  const { id, ...updates } = body;
+  const { id, tipo, monto, descripcion, categoria_id, fecha } = body;
 
   if (!id) {
     return NextResponse.json({ error: "id requerido" }, { status: 400 });
   }
 
-  if (updates.fecha) updates.fecha = new Date(updates.fecha);
+  const data: Record<string, unknown> = {};
+  if (tipo !== undefined) data.tipo = tipo;
+  if (monto !== undefined) data.monto = monto;
+  if (descripcion !== undefined) data.descripcion = descripcion;
+  if (categoria_id !== undefined) data.categoria_id = categoria_id || null;
+  if (fecha !== undefined) data.fecha = new Date(fecha);
 
   const registro = await prisma.registro.update({
     where: { id, user_id: user.id },
-    data: updates,
+    data,
     include: { categoria: true },
   });
 
@@ -101,11 +115,12 @@ export async function PUT(req: NextRequest) {
       ? { ...registro.categoria, created_at: registro.categoria.created_at.toISOString() }
       : null,
   });
-}
+});
 
 // DELETE /api/registros?id=xxx
-export async function DELETE(req: NextRequest) {
+export const DELETE = apiHandler(async (req: NextRequest) => {
   const user = await requireUser();
+  await requireActiveSubscription(user.id);
   const id = req.nextUrl.searchParams.get("id");
 
   if (!id) {
@@ -114,4 +129,4 @@ export async function DELETE(req: NextRequest) {
 
   await prisma.registro.delete({ where: { id, user_id: user.id } });
   return NextResponse.json({ ok: true });
-}
+});

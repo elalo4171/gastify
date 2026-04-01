@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/supabase/user";
+import { apiHandler } from "@/lib/api";
 
 const DEFAULT_CATEGORIES = [
   { nombre: "Comida", emoji: "🍔" },
@@ -18,9 +19,10 @@ const DEFAULT_CATEGORIES = [
   { nombre: "Otros", emoji: "✨" },
 ];
 
-// POST /api/auth/seed-categories — creates default categories for a new user
-export async function POST() {
+// POST /api/auth/seed-categories
+export const POST = apiHandler(async (req: NextRequest) => {
   const user = await requireUser();
+  const body = await req.json().catch(() => null);
 
   // Only seed if user has no categories yet
   const existing = await prisma.categoria.count({ where: { user_id: user.id } });
@@ -28,14 +30,19 @@ export async function POST() {
     return NextResponse.json({ seeded: false, count: existing });
   }
 
+  const categories = Array.isArray(body?.categories) && body.categories.length > 0
+    ? body.categories
+    : DEFAULT_CATEGORIES;
+
   await prisma.categoria.createMany({
-    data: DEFAULT_CATEGORIES.map((c) => ({
-      ...c,
+    data: categories.map((c: { nombre: string; emoji: string }) => ({
+      nombre: c.nombre.trim(),
+      emoji: c.emoji.trim(),
       es_predeterminada: true,
       visible: true,
       user_id: user.id,
     })),
   });
 
-  return NextResponse.json({ seeded: true, count: DEFAULT_CATEGORIES.length });
-}
+  return NextResponse.json({ seeded: true, count: categories.length });
+});

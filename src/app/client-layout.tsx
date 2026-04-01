@@ -10,6 +10,7 @@ import NuevoRegistro from "@/components/NuevoRegistro";
 import VoiceModal from "@/components/VoiceModal";
 import Onboarding from "@/components/Onboarding";
 import DemoBanner from "@/components/DemoBanner";
+import SubscriptionGate from "@/components/SubscriptionGate";
 
 export function ClientLayout({ children }: { children: ReactNode }) {
   const [modalOpen, setModalOpen] = useState(false);
@@ -23,8 +24,6 @@ export function ClientLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
-    const done = localStorage.getItem("gastify_onboarding_done");
-    if (!done && !isLanding && !isLogin && !isSuscripcion) setShowOnboarding(true);
 
     // One-time cleanup: unregister old service workers and clear caches
     if ("serviceWorker" in navigator) {
@@ -33,7 +32,13 @@ export function ClientLayout({ children }: { children: ReactNode }) {
       );
     }
     caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
-  }, [isLanding]);
+  }, []);
+
+  useEffect(() => {
+    if (isLanding || isLogin || isSuscripcion) return;
+    const done = localStorage.getItem("gastify_onboarding_done");
+    if (!done) setShowOnboarding(true);
+  }, [pathname, isLanding, isLogin, isSuscripcion]);
 
   const handleSaved = () => {
     window.dispatchEvent(new CustomEvent("registro-saved"));
@@ -54,6 +59,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
       <ToastProvider>
         <DemoProvider>
           <DemoBanner />
+          <SubscriptionGate />
           {mounted && showOnboarding && (
             <Onboarding
               onComplete={() => {

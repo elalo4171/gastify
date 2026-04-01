@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/supabase/user";
+import { apiHandler } from "@/lib/api";
 
 // GET /api/exportar — returns all registros for CSV export
-export async function GET() {
+export const GET = apiHandler(async () => {
   const user = await requireUser();
 
   const registros = await prisma.registro.findMany({
@@ -23,4 +24,4 @@ export async function GET() {
   }));
 
   return NextResponse.json(serialized);
-}
+});

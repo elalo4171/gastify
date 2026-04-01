@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/supabase/user";
+import { requireUser, requireActiveSubscription } from "@/lib/supabase/user";
+import { apiHandler } from "@/lib/api";
 
 // GET /api/categorias?all=true (all=true includes hidden)
-export async function GET(req: NextRequest) {
+export const GET = apiHandler(async (req: NextRequest) => {
   const user = await requireUser();
   const showAll = req.nextUrl.searchParams.get("all") === "true";
 
@@ -16,11 +17,12 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json(categorias);
-}
+});
 
 // POST /api/categorias
-export async function POST(req: NextRequest) {
+export const POST = apiHandler(async (req: NextRequest) => {
   const user = await requireUser();
+  await requireActiveSubscription(user.id);
   const body = await req.json();
   const { nombre, emoji } = body;
 
@@ -39,29 +41,36 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(categoria);
-}
+});
 
 // PUT /api/categorias
-export async function PUT(req: NextRequest) {
+export const PUT = apiHandler(async (req: NextRequest) => {
   const user = await requireUser();
+  await requireActiveSubscription(user.id);
   const body = await req.json();
-  const { id, ...updates } = body;
+  const { id, nombre, emoji, visible } = body;
 
   if (!id) {
     return NextResponse.json({ error: "id requerido" }, { status: 400 });
   }
 
+  const data: Record<string, unknown> = {};
+  if (nombre !== undefined) data.nombre = nombre;
+  if (emoji !== undefined) data.emoji = emoji;
+  if (visible !== undefined) data.visible = visible;
+
   const categoria = await prisma.categoria.update({
     where: { id, user_id: user.id },
-    data: updates,
+    data,
   });
 
   return NextResponse.json(categoria);
-}
+});
 
 // DELETE /api/categorias?id=xxx
-export async function DELETE(req: NextRequest) {
+export const DELETE = apiHandler(async (req: NextRequest) => {
   const user = await requireUser();
+  await requireActiveSubscription(user.id);
   const id = req.nextUrl.searchParams.get("id");
 
   if (!id) {
@@ -70,4 +79,4 @@ export async function DELETE(req: NextRequest) {
 
   await prisma.categoria.delete({ where: { id, user_id: user.id } });
   return NextResponse.json({ ok: true });
-}
+});
