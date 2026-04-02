@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useSubscription } from "@/lib/hooks";
 import { useDemo } from "@/lib/demo-context";
 import { useRouter } from "next/navigation";
@@ -11,8 +12,16 @@ export default function SubscriptionGate() {
   const router = useRouter();
   const pathname = usePathname();
 
+  // Check if user just came back from Stripe checkout (webhook may still be processing)
+  const [justSubscribed, setJustSubscribed] = useState(false);
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.search.includes("subscribed=true")) {
+      setJustSubscribed(true);
+    }
+  }, []);
+
   // Don't gate on these pages
-  if (isDemo || loading || active) return null;
+  if (isDemo || loading || active || justSubscribed) return null;
   if (pathname === "/suscripcion" || pathname === "/ajustes") return null;
 
   return (

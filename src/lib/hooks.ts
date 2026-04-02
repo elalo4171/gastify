@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useDemo } from "./demo-context";
 import { demoStore } from "./demo-store";
 import type { Categoria, Registro } from "./types";
@@ -145,25 +145,46 @@ export function useSubscription() {
   const [loading, setLoading] = useState(true);
   const [freeDayEnd, setFreeDayEnd] = useState<string | null>(null);
   const { isDemo } = useDemo();
+  const retryCountRef = useRef(0);
+  const maxRetries = 3;
+  const retryDelayMs = 2000;
 
   const fetchStatus = useCallback(async () => {
     setLoading(true);
     if (isDemo) {
       setActive(true);
       setStatus("demo");
-    } else {
-      const res = await fetch("/api/stripe/status");
-      if (res.ok) {
-        const data = await res.json();
-        setActive(data.active);
-        setStatus(data.status);
-        setFreeDayEnd(data.free_day_end || null);
+      setLoading(false);
+      return;
+    }
+
+    const res = await fetch("/api/stripe/status");
+    if (res.ok) {
+      const data = await res.json();
+      setActive(data.active);
+      setStatus(data.status);
+      setFreeDayEnd(data.free_day_end || null);
+
+      // Retry mechanism for post-checkout webhook race condition:
+      // If URL has subscribed=true but status came back inactive,
+      // the webhook may not have processed yet. Retry up to 3 times.
+      const hasSubscribedParam =
+        typeof window !== "undefined" &&
+        window.location.search.includes("subscribed=true");
+
+      if (hasSubscribedParam && !data.active && retryCountRef.current < maxRetries) {
+        retryCountRef.current += 1;
+        setTimeout(() => {
+          fetchStatus();
+        }, retryDelayMs);
+        return; // keep loading state true while retrying
       }
     }
     setLoading(false);
   }, [isDemo]);
 
   useEffect(() => {
+    retryCountRef.current = 0;
     fetchStatus();
   }, [fetchStatus]);
 

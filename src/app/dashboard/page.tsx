@@ -38,6 +38,9 @@ export default function Dashboard() {
   const [quickSaving, setQuickSaving] = useState(false);
   const [showCatsModal, setShowCatsModal] = useState(false);
   const [showMovsModal, setShowMovsModal] = useState(false);
+  const [addingQuickCat, setAddingQuickCat] = useState(false);
+  const [newCatEmoji, setNewCatEmoji] = useState("");
+  const [newCatName, setNewCatName] = useState("");
   const { show } = useToast();
 
   const handleRefresh = useCallback(() => {
@@ -264,7 +267,54 @@ export default function Dashboard() {
                     {cat.emoji} {cat.nombre}
                   </button>
                 ))}
+                <button
+                  onClick={() => setAddingQuickCat(!addingQuickCat)}
+                  className={`px-2 py-1 rounded-lg text-xs transition-all ${
+                    addingQuickCat
+                      ? "bg-[var(--color-accent)] text-white"
+                      : "bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)]"
+                  }`}
+                >
+                  + Nueva
+                </button>
               </div>
+              {addingQuickCat && (
+                <div className="flex gap-1.5 mb-3 animate-fade-in">
+                  <input
+                    type="text"
+                    placeholder="😀"
+                    value={newCatEmoji}
+                    onChange={(e) => setNewCatEmoji(e.target.value)}
+                    maxLength={2}
+                    className="w-10 py-1.5 text-center text-sm rounded-lg bg-[var(--color-bg-secondary)] outline-none"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Nombre"
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    className="flex-1 py-1.5 px-2.5 rounded-lg bg-[var(--color-bg-secondary)] text-xs outline-none placeholder:text-[var(--color-text-tertiary)]"
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!newCatEmoji.trim() || !newCatName.trim()) return;
+                      const { data } = await crearCategoria({ nombre: newCatName.trim(), emoji: newCatEmoji.trim() }, isDemo);
+                      if (data) {
+                        setQuickCatId(data.id);
+                        setNewCatEmoji("");
+                        setNewCatName("");
+                        setAddingQuickCat(false);
+                        handleRefresh();
+                        show("Categoría creada");
+                      }
+                    }}
+                    disabled={!newCatEmoji.trim() || !newCatName.trim()}
+                    className="px-3 py-1.5 rounded-lg bg-[var(--color-accent)] text-white text-xs font-semibold disabled:opacity-30 transition-all"
+                  >
+                    Crear
+                  </button>
+                </div>
+              )}
               <button
                 onClick={async () => {
                   const monto = parseFloat(quickMonto);
@@ -386,12 +436,59 @@ export default function Dashboard() {
                   <span>📤</span> Exportar datos
                 </button>
 
+                {/* Subscription */}
+                <button
+                  onClick={async () => {
+                    const res = await fetch("/api/stripe/portal", { method: "POST" });
+                    if (res.ok) {
+                      const { url } = await res.json();
+                      if (url && typeof url === "string" && url.startsWith("https://billing.stripe.com")) {
+                        window.location.href = url;
+                      }
+                    } else {
+                      window.location.href = "/suscripcion";
+                    }
+                  }}
+                  className="flex items-center gap-2 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors w-full text-left"
+                >
+                  <span>⭐</span> Suscripción
+                </button>
+
                 {/* Delete all */}
                 <button
                   onClick={() => setConfirmDeleteAll(true)}
                   className="flex items-center gap-2 py-2 text-sm text-[var(--color-expense)] hover:opacity-80 transition-colors w-full text-left"
                 >
                   <span>🗑️</span> Eliminar todo
+                </button>
+
+                <div className="border-t border-[var(--color-border)] pt-2 mt-2" />
+
+                {/* Logout */}
+                <button
+                  onClick={async () => {
+                    await fetch("/api/auth/logout", { method: "POST" });
+                    window.location.href = "/login";
+                  }}
+                  className="flex items-center gap-2 py-2 text-sm text-[var(--color-expense)] hover:opacity-80 transition-colors w-full text-left"
+                >
+                  <span>🚪</span> Cerrar sesión
+                </button>
+
+                {/* Delete account */}
+                <button
+                  onClick={() => {
+                    if (confirm("¿Eliminar tu cuenta? Se perderán todos tus datos permanentemente.")) {
+                      if (confirm("¿Realmente deseas eliminar tu cuenta? Esta acción no se puede deshacer.")) {
+                        fetch("/api/auth/delete-account", { method: "DELETE" })
+                          .then(() => fetch("/api/auth/logout", { method: "POST" }))
+                          .then(() => { localStorage.clear(); window.location.href = "/"; });
+                      }
+                    }
+                  }}
+                  className="flex items-center gap-2 py-2 text-sm text-[var(--color-expense)] hover:opacity-80 transition-colors w-full text-left"
+                >
+                  <span>⚠️</span> Eliminar cuenta
                 </button>
               </div>
             )}

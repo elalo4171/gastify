@@ -1,19 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSubscription } from "@/lib/hooks";
 
 export default function SuscripcionPage() {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { active, loading: subLoading } = useSubscription();
+
+  // If subscription is already active, redirect to dashboard
+  useEffect(() => {
+    if (!subLoading && active) {
+      router.replace("/");
+    }
+  }, [subLoading, active, router]);
 
   const handleSubscribe = async () => {
     setLoading(true);
-    const res = await fetch("/api/stripe/checkout", { method: "POST" });
-    const { url } = await res.json();
-    if (url && typeof url === "string" && url.startsWith("https://checkout.stripe.com")) {
-      window.location.href = url;
-    } else {
+    setError(null);
+    try {
+      const res = await fetch("/api/stripe/checkout", { method: "POST" });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        setError(errData?.error || "Error al crear la sesión de pago. Intenta de nuevo.");
+        setLoading(false);
+        return;
+      }
+      const { url } = await res.json();
+      if (url && typeof url === "string" && url.startsWith("https://checkout.stripe.com")) {
+        window.location.href = url;
+      } else {
+        setError("No se pudo obtener el enlace de pago. Intenta de nuevo.");
+        setLoading(false);
+      }
+    } catch {
+      setError("Error de conexión. Verifica tu internet e intenta de nuevo.");
       setLoading(false);
     }
   };
@@ -62,6 +85,10 @@ export default function SuscripcionPage() {
           >
             {loading ? "Redirigiendo..." : "Suscribirse"}
           </button>
+
+          {error && (
+            <p className="mt-3 text-xs text-red-500 leading-relaxed">{error}</p>
+          )}
         </div>
 
         <button
