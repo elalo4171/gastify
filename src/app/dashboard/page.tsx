@@ -617,27 +617,29 @@ function MovimientosModal({ open, onClose, onRefresh }: { open: boolean; onClose
   const { isDemo } = useDemo();
   const [search, setSearch] = useState("");
   const [filtroTipo, setFiltroTipo] = useState<"todos" | "entrada" | "salida">("todos");
-  const [mesOffset, setMesOffset] = useState(0); // 0 = este mes, -1 = anterior, etc.
+  const [mesOffset, setMesOffset] = useState<number | null>(null); // null = todos, 0 = este mes, -1 = anterior, etc.
   const [showMonthPicker, setShowMonthPicker] = useState(false);
 
   const selectedDate = useMemo(() => {
+    if (mesOffset === null) return null;
     const d = new Date();
     d.setMonth(d.getMonth() + mesOffset);
     return d;
   }, [mesOffset]);
 
   const monthLabel = useMemo(() => {
+    if (mesOffset === null) return "Todos";
     if (mesOffset === 0) return "Este mes";
-    return format(selectedDate, "MMMM yyyy", { locale: es });
+    return format(selectedDate!, "MMMM yyyy", { locale: es });
   }, [mesOffset, selectedDate]);
 
   const filtered = useMemo(() => {
-    const mesInicio = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
-    const mesFin = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
-
     return registros.filter((r) => {
-      const fecha = new Date(r.fecha);
-      if (fecha < mesInicio || fecha > mesFin) return false;
+      // Month filter using string comparison to avoid timezone issues
+      if (selectedDate !== null) {
+        const mesStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}`;
+        if (!r.fecha.startsWith(mesStr)) return false;
+      }
       if (filtroTipo !== "todos" && r.tipo !== filtroTipo) return false;
       if (search && !r.descripcion.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
@@ -660,7 +662,15 @@ function MovimientosModal({ open, onClose, onRefresh }: { open: boolean; onClose
         {showMonthPicker && (
           <>
             <div className="fixed inset-0 z-10" onClick={() => setShowMonthPicker(false)} />
-            <div className="absolute left-0 top-full mt-1 z-20 bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-xl p-2 shadow-lg animate-scale-in w-48">
+            <div className="absolute left-0 top-full mt-1 z-20 bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-xl p-2 shadow-lg animate-scale-in w-48 max-h-60 overflow-y-auto">
+              <button
+                onClick={() => { setMesOffset(null); setShowMonthPicker(false); }}
+                className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-all ${
+                  mesOffset === null ? "bg-[var(--color-accent)] text-white" : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
+                }`}
+              >
+                Todos
+              </button>
               {months.map((offset) => {
                 const d = new Date();
                 d.setMonth(d.getMonth() + offset);
