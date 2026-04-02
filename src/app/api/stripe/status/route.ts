@@ -30,5 +30,6 @@ export async function GET() {
     trial_end: sub.trial_end?.toISOString() || null,
     current_period_end: sub.current_period_end?.toISOString() || null,
     free_day_end: freeDayEnd.toISOString(),
+    has_subscription: true,
   });
 }

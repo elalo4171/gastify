@@ -144,6 +144,9 @@ export function useSubscription() {
   const [status, setStatus] = useState("loading");
   const [loading, setLoading] = useState(true);
   const [freeDayEnd, setFreeDayEnd] = useState<string | null>(null);
+  const [trialEnd, setTrialEnd] = useState<string | null>(null);
+  const [periodEnd, setPeriodEnd] = useState<string | null>(null);
+  const [hasSub, setHasSub] = useState(false);
   const { isDemo } = useDemo();
   const retryCountRef = useRef(0);
   const maxRetries = 3;
@@ -164,6 +167,9 @@ export function useSubscription() {
       setActive(data.active);
       setStatus(data.status);
       setFreeDayEnd(data.free_day_end || null);
+      setTrialEnd(data.trial_end || null);
+      setPeriodEnd(data.current_period_end || null);
+      setHasSub(data.has_subscription || false);
 
       // Retry mechanism for post-checkout webhook race condition:
       // If URL has subscribed=true but status came back inactive,
@@ -188,7 +194,7 @@ export function useSubscription() {
     fetchStatus();
   }, [fetchStatus]);
 
-  return { active, status, loading, freeDayEnd, refetch: fetchStatus };
+  return { active, status, loading, freeDayEnd, trialEnd, periodEnd, hasSubscription: hasSub, refetch: fetchStatus };
 }
 
 // ── CRUD ────────────────────────────────────────────────
