@@ -37,7 +37,20 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isLanding || isLogin || isMinimalPage) return;
     const done = localStorage.getItem("gastify_onboarding_done");
-    if (!done) setShowOnboarding(true);
+    if (done) return;
+
+    // Check if user already has categories (returning user on new device/browser)
+    fetch("/api/categorias")
+      .then((res) => res.ok ? res.json() : [])
+      .then((cats) => {
+        if (Array.isArray(cats) && cats.length > 0) {
+          // User already has categories — skip onboarding
+          localStorage.setItem("gastify_onboarding_done", "true");
+        } else {
+          setShowOnboarding(true);
+        }
+      })
+      .catch(() => setShowOnboarding(true));
   }, [pathname, isLanding, isLogin, isMinimalPage]);
 
   const handleSaved = () => {
