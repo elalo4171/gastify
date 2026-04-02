@@ -42,11 +42,18 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Logged in: clear demo cookie (demo and auth are mutually exclusive)
+  if (user && isDemo) {
+    supabaseResponse.cookies.set("gastify_demo", "", { path: "/", maxAge: 0 });
+  }
+
   // Logged in and on public page → redirect to dashboard
   if (user && (pathname === "/" || pathname === "/landing" || pathname === "/login")) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+    const response = NextResponse.redirect(url);
+    if (isDemo) response.cookies.set("gastify_demo", "", { path: "/", maxAge: 0 });
+    return response;
   }
 
   return supabaseResponse;

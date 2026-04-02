@@ -68,6 +68,10 @@ export default function LoginPage() {
       }
     }
 
+    // Clear demo mode if active
+    sessionStorage.removeItem("gastify_demo");
+    document.cookie = "gastify_demo=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+
     router.refresh();
     router.push("/dashboard");
   };
