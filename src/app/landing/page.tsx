@@ -489,6 +489,25 @@ export default function LandingPage() {
           <p className="text-sm text-[var(--color-text-tertiary)]">
             {c.hero.price} <span className="text-[var(--color-text-primary)] font-bold">$45 MXN</span>{c.hero.pricePer}
           </p>
+
+          <div className="mt-6 inline-flex items-center gap-3 px-5 py-3 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/60 backdrop-blur-sm">
+            <span className="text-sm text-[var(--color-text-secondary)]">
+              {lang === "es" ? "Creada por" : "Created by"}{" "}
+              <span className="text-[var(--color-text-primary)] font-semibold">Eduardo García</span>
+              {" "}{lang === "es" ? "con" : "with"}
+            </span>
+            <a
+              href="https://claude.ai/code"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)] text-sm font-semibold hover:bg-[var(--color-accent)]/20 transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                <path d="M4.5 2A2.5 2.5 0 0 0 2 4.5v15A2.5 2.5 0 0 0 4.5 22h15a2.5 2.5 0 0 0 2.5-2.5v-15A2.5 2.5 0 0 0 19.5 2h-15ZM8.4 16.2a.75.75 0 0 1-.75.75H7a.75.75 0 0 1-.75-.75v-.6a.75.75 0 0 1 .75-.75h.65a.75.75 0 0 1 .75.75v.6Zm4.85-4.5L11 16.2a.75.75 0 0 1-.67.42h-.08a.75.75 0 0 1-.67-1.08l2.25-4.5a.75.75 0 0 1 .67-.42h.08a.75.75 0 0 1 .67 1.08Zm4.35 4.5a.75.75 0 0 1-.75.75h-.65a.75.75 0 0 1-.75-.75v-.6a.75.75 0 0 1 .75-.75h.65a.75.75 0 0 1 .75.75v.6Z" />
+              </svg>
+              Claude Code
+            </a>
+          </div>
         </div>
       </section>
 
