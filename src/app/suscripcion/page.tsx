@@ -43,7 +43,8 @@ export default function SuscripcionPage() {
     try {
       const res = await fetch("/api/stripe/portal", { method: "POST" });
       if (!res.ok) {
-        setError("No se pudo abrir el portal. Intenta de nuevo.");
+        const errData = await res.json().catch(() => null);
+        setError(errData?.error || "No se pudo abrir el portal. Intenta de nuevo.");
         setPortalLoading(false);
         return;
       }
