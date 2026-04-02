@@ -20,7 +20,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isLanding = pathname === "/" || pathname === "/landing";
   const isLogin = pathname === "/login";
-  const isSuscripcion = pathname === "/suscripcion";
+  const isMinimalPage = pathname === "/suscripcion" || pathname === "/onboarding" || pathname === "/reset-password";
 
   useEffect(() => {
     setMounted(true);
@@ -35,16 +35,16 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (isLanding || isLogin || isSuscripcion) return;
+    if (isLanding || isLogin || isMinimalPage) return;
     const done = localStorage.getItem("gastify_onboarding_done");
     if (!done) setShowOnboarding(true);
-  }, [pathname, isLanding, isLogin, isSuscripcion]);
+  }, [pathname, isLanding, isLogin, isMinimalPage]);
 
   const handleSaved = () => {
     window.dispatchEvent(new CustomEvent("registro-saved"));
   };
 
-  if (isLanding || isLogin || isSuscripcion) {
+  if (isLanding || isLogin || isMinimalPage) {
     return (
       <ThemeProvider>
         <ToastProvider>

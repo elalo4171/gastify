@@ -13,7 +13,7 @@ export default function SuscripcionPage() {
   // If subscription is already active, redirect to dashboard
   useEffect(() => {
     if (!subLoading && active) {
-      router.replace("/");
+      router.replace("/dashboard");
     }
   }, [subLoading, active, router]);
 

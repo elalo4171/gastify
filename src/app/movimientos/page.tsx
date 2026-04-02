@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useRegistros, useCategorias, eliminarRegistro, actualizarRegistro } from "@/lib/hooks";
 import type { Registro, FiltroTipo } from "@/lib/types";
 import RegistroItem from "@/components/RegistroItem";
@@ -10,6 +11,7 @@ import { useToast } from "@/components/Toast";
 import { formatFechaGrupo, formatMonto, getMonedaFromStorage } from "@/lib/utils";
 
 export default function MovimientosPage() {
+  const router = useRouter();
   const { registros, loading, refetch } = useRegistros();
   const { categorias } = useCategorias();
   const { show } = useToast();
@@ -68,7 +70,7 @@ export default function MovimientosPage() {
     <div className="pt-8 animate-fade-in max-w-2xl mx-auto">
       <div className="flex items-center gap-3 mb-5">
         <button
-          onClick={() => window.history.back()}
+          onClick={() => router.push("/dashboard")}
           className="w-10 h-10 flex items-center justify-center rounded-full bg-[var(--color-bg-elevated)] text-[var(--color-text-secondary)] shrink-0"
         >
           ✕

@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAllCategorias, actualizarCategoria, eliminarCategoria, crearCategoria } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
 import { getChartColor } from "@/lib/utils";
 
 export default function CategoriasPage() {
+  const router = useRouter();
   const { categorias, loading, refetch } = useAllCategorias();
   const { show } = useToast();
   const [adding, setAdding] = useState(false);
@@ -44,7 +46,7 @@ export default function CategoriasPage() {
       {/* Header with close */}
       <div className="flex items-center gap-3 mb-8">
         <button
-          onClick={() => window.history.back()}
+          onClick={() => router.push("/dashboard")}
           className="w-10 h-10 flex items-center justify-center rounded-full bg-[var(--color-bg-elevated)] text-[var(--color-text-secondary)] shrink-0"
         >
           ✕
