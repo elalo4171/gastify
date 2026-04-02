@@ -345,8 +345,23 @@ export default function LandingPage() {
   const [lang, setLang] = useState<Lang>("es");
   const [mounted, setMounted] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [eggCount, setEggCount] = useState(0);
+  const [showVersion, setShowVersion] = useState(false);
+  const eggTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { resolved, setTheme } = useTheme();
   const { enterDemo } = useDemo();
+
+  const handleLogoTap = () => {
+    const next = eggCount + 1;
+    if (next >= 15) {
+      setShowVersion(true);
+      setEggCount(0);
+    } else {
+      setEggCount(next);
+    }
+    if (eggTimer.current) clearTimeout(eggTimer.current);
+    eggTimer.current = setTimeout(() => setEggCount(0), 3000);
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -394,7 +409,7 @@ export default function LandingPage() {
           ═══════════════════════════════════════════ */}
       <nav className="sticky top-0 z-50 backdrop-blur-xl bg-[var(--color-bg-primary)]/80 border-b border-[var(--color-border)]">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <span className="text-xl font-extrabold text-[var(--color-accent)]">Gastify</span>
+          <span className="text-xl font-extrabold text-[var(--color-accent)] select-none cursor-default" onClick={handleLogoTap}>Gastify</span>
 
           <div className="hidden md:flex items-center gap-8 text-sm text-[var(--color-text-secondary)]">
             <a href="#features" className="hover:text-[var(--color-text-primary)] transition-colors">
@@ -835,6 +850,35 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* Easter egg version modal */}
+      {showVersion && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center animate-overlay" onClick={() => setShowVersion(false)}>
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+          <div
+            className="relative bg-[var(--color-bg-card)] rounded-2xl p-8 max-w-xs w-full mx-6 text-center shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-5xl mb-4">🥚</div>
+            <h3 className="text-lg font-bold text-[var(--color-text-primary)] mb-1">Gastify</h3>
+            <p className="text-2xl font-extrabold text-[var(--color-accent)] mb-3">v1.0.0</p>
+            <div className="space-y-1 text-xs text-[var(--color-text-secondary)]">
+              <p>Next.js 16 &middot; Prisma 7 &middot; Supabase</p>
+              <p>Tailwind CSS v4 &middot; PWA</p>
+              <p className="pt-2 text-[var(--color-text-tertiary)]">
+                Hecho con ❤️ por Eduardo García
+              </p>
+              <p className="text-[var(--color-text-tertiary)]">con Claude Code</p>
+            </div>
+            <button
+              onClick={() => setShowVersion(false)}
+              className="mt-5 px-6 py-2 rounded-xl bg-[var(--color-accent)] text-white text-sm font-semibold active:scale-95 transition-transform"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
