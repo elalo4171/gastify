@@ -31,7 +31,9 @@ export function ClientLayout({ children }: { children: ReactNode }) {
         regs.forEach((r) => r.unregister())
       );
     }
-    caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+    if ("caches" in window) {
+      caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+    }
   }, []);
 
   useEffect(() => {
